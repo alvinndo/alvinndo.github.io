@@ -1,0 +1,5 @@
+# Ignore venv
+cs416venv
+
+# Ignore CSV files
+*.csv
