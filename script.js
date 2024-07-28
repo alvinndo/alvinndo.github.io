@@ -1,144 +1,128 @@
-d3.csv('US_States_COVID_data.csv').then(data => {
-    // Log data to check if it's loaded correctly
-    console.log(data);
+let currentScene = 0;
+const scenes = ["scene-1", "scene-2", "scene-3"];
+const dataUrl = "https://raw.githubusercontent.com/datasets/co2-fossil-global/master/global.csv";
 
-    // Convert date string to Date object and convert confirmed cases to numbers
-    data.forEach(d => {
-        d.Date = new Date(d.Date); // Convert Date to Date object
-        d.Confirmed = +d.Confirmed; // Convert Confirmed cases to a number
+function showScene(index) {
+    scenes.forEach((scene, i) => {
+        document.getElementById(scene).classList.toggle('visible', i === index);
     });
+}
 
-    // Set dimensions and margins for the charts
+function nextScene() {
+    currentScene = (currentScene + 1) % scenes.length;
+    showScene(currentScene);
+}
+
+function previousScene() {
+    currentScene = (currentScene - 1 + scenes.length) % scenes.length;
+    showScene(currentScene);
+}
+
+d3.csv(dataUrl).then(data => {
+    renderLineChart(data);
+    renderBarChart(data);
+    renderPieChart(data);
+});
+
+function renderLineChart(data) {
+    const svg = d3.select("#chart1");
+    const width = +svg.attr("width");
+    const height = +svg.attr("height");
     const margin = {top: 20, right: 30, bottom: 30, left: 40};
-    const width = 800 - margin.left - margin.right;
-    const height = 400 - margin.top - margin.bottom;
 
-    // Scene 1: Total Confirmed Cases Over Time
-    const svg1 = d3.select('#scene1').append('svg')
-        .attr('width', width + margin.left + margin.right)
-        .attr('height', height + margin.top + margin.bottom)
-        .append('g')
-        .attr('transform', `translate(${margin.left},${margin.top})`);
+    const x = d3.scaleTime()
+        .domain(d3.extent(data, d => new Date(d.Year)))
+        .range([margin.left, width - margin.right]);
 
-    // Set scales
-    const x1 = d3.scaleTime()
-        .domain(d3.extent(data, d => d.Date))
-        .range([0, width]);
+    const y = d3.scaleLinear()
+        .domain([0, d3.max(data, d => +d.Total)]).nice()
+        .range([height - margin.bottom, margin.top]);
 
-    const y1 = d3.scaleLinear()
-        .domain([0, d3.max(data, d => d.Confirmed)]).nice()
-        .range([height, 0]);
-
-    // Add axes
-    svg1.append("g")
-        .attr("transform", `translate(0,${height})`)
-        .call(d3.axisBottom(x1));
-
-    svg1.append("g")
-        .call(d3.axisLeft(y1));
-
-    // Draw the line
     const line = d3.line()
-        .x(d => x1(d.Date))
-        .y(d => y1(d.Confirmed));
+        .x(d => x(new Date(d.Year)))
+        .y(d => y(+d.Total));
 
-    svg1.append("path")
+    svg.append("g")
+        .attr("transform", `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x).ticks(width / 80).tickSizeOuter(0));
+
+    svg.append("g")
+        .attr("transform", `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y));
+
+    svg.append("path")
         .datum(data)
         .attr("fill", "none")
         .attr("stroke", "steelblue")
         .attr("stroke-width", 1.5)
         .attr("d", line);
+}
 
-    // Scene 2: State-wise Breakdown
-    const svg2 = d3.select('#scene2').append('svg')
-        .attr('width', width + margin.left + margin.right)
-        .attr('height', height + margin.top + margin.bottom)
-        .append('g')
-        .attr('transform', `translate(${margin.left},${margin.top})`);
+function renderBarChart(data) {
+    const svg = d3.select("#chart2");
+    const width = +svg.attr("width");
+    const height = +svg.attr("height");
+    const margin = {top: 20, right: 30, bottom: 40, left: 40};
 
-    const x2 = d3.scaleBand()
-        .domain(data.map(d => d.Province_State))
-        .range([0, width])
+    const topCountries = data.slice().sort((a, b) => d3.descending(+a.Total, +b.Total)).slice(0, 10);
+
+    const x = d3.scaleBand()
+        .domain(topCountries.map(d => d.Country))
+        .range([margin.left, width - margin.right])
         .padding(0.1);
 
-    const y2 = d3.scaleLinear()
-        .domain([0, d3.max(data, d => d.Confirmed)]).nice()
-        .range([height, 0]);
+    const y = d3.scaleLinear()
+        .domain([0, d3.max(topCountries, d => +d.Total)]).nice()
+        .range([height - margin.bottom, margin.top]);
 
-    svg2.append("g")
-        .attr("transform", `translate(0,${height})`)
-        .call(d3.axisBottom(x2).tickSizeOuter(0))
-        .selectAll("text")
-        .attr("transform", "rotate(-45)")
-        .attr("dy", "0.25em")
-        .attr("dx", "-1em")
-        .style("text-anchor", "end");
+    svg.append("g")
+        .attr("transform", `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x).tickSizeOuter(0));
 
-    svg2.append("g")
-        .call(d3.axisLeft(y2));
+    svg.append("g")
+        .attr("transform", `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y));
 
-    svg2.selectAll(".bar")
-        .data(data)
-        .join("rect")
+    svg.selectAll(".bar")
+        .data(topCountries)
+        .enter().append("rect")
         .attr("class", "bar")
-        .attr("x", d => x2(d.Province_State))
-        .attr("y", d => y2(d.Confirmed))
-        .attr("height", d => y2(0) - y2(d.Confirmed))
-        .attr("width", x2.bandwidth());
-
-    // Scene 3: County-wise Exploration
-    const svg3 = d3.select('#scene3').append('svg')
-        .attr('width', width + margin.left + margin.right)
-        .attr('height', height + margin.top + margin.bottom)
-        .append('g')
-        .attr('transform', `translate(${margin.left},${margin.top})`);
-
-    // Assuming Lat and Long are needed here; check your data for these fields
-    const x3 = d3.scaleLinear()
-        .domain(d3.extent(data, d => +d.Lat)).nice()
-        .range([0, width]);
-
-    const y3 = d3.scaleLinear()
-        .domain(d3.extent(data, d => +d.Long_)).nice()
-        .range([height, 0]);
-
-    svg3.append("g")
-        .attr("transform", `translate(0,${height})`)
-        .call(d3.axisBottom(x3).tickSizeOuter(0));
-
-    svg3.append("g")
-        .call(d3.axisLeft(y3));
-
-    // Create scatter plot
-    svg3.selectAll(".dot")
-        .data(data)
-        .join("circle")
-        .attr("class", "dot")
-        .attr("cx", d => x3(+d.Lat))
-        .attr("cy", d => y3(+d.Long_))
-        .attr("r", 3)
+        .attr("x", d => x(d.Country))
+        .attr("y", d => y(+d.Total))
+        .attr("width", x.bandwidth())
+        .attr("height", d => y(0) - y(+d.Total))
         .attr("fill", "steelblue");
+}
 
-    // Optionally add tooltips
-    const tooltip = d3.select("body").append("div")
-        .attr("class", "tooltip")
-        .style("opacity", 0);
+function renderPieChart(data) {
+    const svg = d3.select("#chart3");
+    const width = +svg.attr("width");
+    const height = +svg.attr("height");
+    const radius = Math.min(width, height) / 2;
+    const g = svg.append("g").attr("transform", `translate(${width / 2},${height / 2})`);
 
-    svg3.selectAll(".dot")
-        .on("mouseover", (event, d) => {
-            tooltip.transition()
-                .duration(200)
-                .style("opacity", .9);
-            tooltip.html(`County: ${d.Admin2}<br>State: ${d.Province_State}<br>Confirmed: ${d.Confirmed}`)
-                .style("left", (event.pageX + 5) + "px")
-                .style("top", (event.pageY - 28) + "px");
-        })
-        .on("mouseout", (event, d) => {
-            tooltip.transition()
-                .duration(500)
-                .style("opacity", 0);
-        });
+    const color = d3.scaleOrdinal()
+        .domain(data.map(d => d.Sector))
+        .range(d3.schemeCategory10);
 
-}).catch(error => {
-    console.error('Error loading the CSV file:', error);
-});
+    const pie = d3.pie()
+        .value(d => +d.Total)
+        .sort(null);
+
+    const arc = d3.arc()
+        .innerRadius(0)
+        .outerRadius(radius);
+
+    g.selectAll("path")
+        .data(pie(data))
+        .enter().append("path")
+        .attr("fill", d => color(d.data.Sector))
+        .attr("d", arc);
+
+    g.selectAll("text")
+        .data(pie(data))
+        .enter().append("text")
+        .attr("transform", d => `translate(${arc.centroid(d)})`)
+        .attr("dy", "0.35em")
+        .text(d => d.data.Sector);
+}

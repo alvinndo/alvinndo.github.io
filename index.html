@@ -3,17 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>COVID-19 Narrative Visualization</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Narrative Visualization</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .scene {
+            display: none;
+        }
+        .visible {
+            display: block;
+        }
+        .annotation {
+            font-size: 14px;
+            fill: black;
+        }
+    </style>
 </head>
 <body>
-    <h1>COVID-19 Narrative Visualization</h1>
-    <div id="visualization">
-        <div id="scene1"></div>
-        <div id="scene2"></div>
-        <div id="scene3"></div>
+    <div id="scene-1" class="scene visible">
+        <h1>Global CO2 Emissions Over Time</h1>
+        <svg id="chart1" width="800" height="500"></svg>
+        <p class="annotation" id="annotation1">CO2 emissions have been steadily increasing over the past decades.</p>
     </div>
-    <script src="https://d3js.org/d3.v6.min.js"></script>
-    <script src="script.js"></script> 
+    <div id="scene-2" class="scene">
+        <h1>Top CO2 Emitting Countries</h1>
+        <svg id="chart2" width="800" height="500"></svg>
+        <p class="annotation" id="annotation2">Certain countries contribute more significantly to global emissions.</p>
+    </div>
+    <div id="scene-3" class="scene">
+        <h1>Emissions by Sector</h1>
+        <svg id="chart3" width="800" height="500"></svg>
+        <p class="annotation" id="annotation3">Different sectors contribute differently to overall emissions.</p>
+    </div>
+    <button onclick="nextScene()">Next</button>
+    <button onclick="previousScene()">Previous</button>
+
+    <script src="script.js"></script>
 </body>
 </html>
