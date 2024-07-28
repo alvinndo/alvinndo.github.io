@@ -1,4 +1,4 @@
-d3.csv('processed_US_COVID_data.csv').then(data => {
+d3.csv('US_States_COVID_data.csv').then(data => {
     // Log data to check if it's loaded correctly
     console.log(data);
 
