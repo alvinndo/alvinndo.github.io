@@ -3,3 +3,6 @@ cs416venv
 
 # Ignore CSV files
 *.csv
+
+# Ignore jupyter checkpoints
+.ipynb_checkpoints
