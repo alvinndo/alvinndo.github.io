@@ -1,4 +1,4 @@
-d3.csv('processed_US_COVID_data.json').then(data => {
+d3.csv('processed_US_COVID_data.csv').then(data => {
     // Process data for each scene
 
     // Scene 1: Total Confirmed Cases Over Time
