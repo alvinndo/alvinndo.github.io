@@ -2,7 +2,7 @@
 cs416venv
 
 # Ignore CSV files
-*.csv
+#*.csv
 
 # Ignore jupyter checkpoints
 .ipynb_checkpoints
