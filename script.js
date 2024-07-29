@@ -238,17 +238,7 @@ function renderPieChart(data) {
     const radius = Math.min(width, height) / 2;
     const g = svg.append("g").attr("transform", `translate(${width / 2},${height / 2})`);
 
-    // Select a specific year (latest year in the dataset)
-    const latestYearData = data[data.length - 1];
-    const sectors = ["Gas Fuel", "Liquid Fuel", "Solid Fuel", "Cement", "Gas Flaring"].map(key => ({
-        sector: key,
-        value: latestYearData[key]
-    }));
-
-    const color = d3.scaleOrdinal()
-        .domain(sectors.map(d => d.sector))
-        .range(d3.schemeCategory10);
-
+    // Assuming you have already calculated the sectors data
     const pie = d3.pie()
         .value(d => d.value)
         .sort(null);
@@ -257,16 +247,37 @@ function renderPieChart(data) {
         .innerRadius(0)
         .outerRadius(radius);
 
-    g.selectAll("path")
+    const sectors = d3.nest() // Assuming sectors are already calculated
+        .key(d => d.Sector)
+        .rollup(v => d3.sum(v, d => +d.Total))
+        .entries(data);
+
+    const color = d3.scaleOrdinal()
+        .domain(sectors.map(d => d.key))
+        .range(d3.schemeCategory10);
+
+    const path = g.selectAll("path")
         .data(pie(sectors))
         .enter().append("path")
-        .attr("fill", d => color(d.data.sector))
-        .attr("d", arc);
+        .attr("fill", d => color(d.data.key))
+        .attr("d", arc)
+        .each(d => { d.outerRadius = radius - 20; }); // Store initial outerRadius for interaction
 
-    g.selectAll("text")
-        .data(pie(sectors))
-        .enter().append("text")
-        .attr("transform", d => `translate(${arc.centroid(d)})`)
-        .attr("dy", "0.35em")
-        .text(d => d.data.sector);
+    // Add click event to slices
+    path.on("click", function(event, d) {
+        // Display the sector and value in the div below the pie chart
+        document.getElementById('pie-info').innerHTML = `Sector: ${d.data.key}, Total Emissions: ${d3.format(",")(d.data.value)}`;
+    });
+
+    // Optional: Add hover effect to enlarge slices
+    path.on("mouseover", function(event, d) {
+        d3.select(this).transition()
+            .duration(200)
+            .attr("d", arc.outerRadius(radius));
+    })
+    .on("mouseout", function(event, d) {
+        d3.select(this).transition()
+            .duration(200)
+            .attr("d", arc.outerRadius(radius - 20));
+    });
 }
