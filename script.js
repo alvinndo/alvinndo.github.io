@@ -103,9 +103,9 @@ function renderGlobalCO2EmissionsChart(data) {
         .style("fill", "none")
         .style("pointer-events", "all")
         .on("mousemove", function(event) {
-            const xPos = d3.pointer(event, this)[0];  // Relative to the overlay
-            const x0 = x.invert(xPos); // Converts pixel to date
-            const year = Math.round(x0.getFullYear());
+            const [xPos] = d3.pointer(event);
+            const year = x.invert(xPos + margin.left).getFullYear();
+            const closestPoint = data.find(d => d.Year === year);
             
             tooltip.html(`<strong>Year: ${closestPoint ? closestPoint.Year : "N/A"}</strong><br>Total: ${closestPoint ? d3.format(",")(closestPoint.Total) : "No data"}`)
                 .style("left", (event.pageX + 5) + "px")
