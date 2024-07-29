@@ -244,9 +244,9 @@ const sectorDescriptions = {
 };
 
 function renderPieChart(data) {
-    const svg = d3.select("#chart3");
-    const width = +svg.attr("width");
-    const height = +svg.attr("height");
+    const svg = d3.select("#chart3")
+        .attr("width", 800)
+        attr("height", 850);
     const radius = Math.min(width, height) / 2;
     const g = svg.append("g").attr("transform", `translate(${width / 2},${height / 2})`);
 
@@ -289,7 +289,7 @@ function renderPieChart(data) {
 
     path.on("click", function(event, d) {
         const description = sectorDescriptions[d.data.Sector];
-        document.getElementById('pie-info').innerHTML = `<strong>${d.data.Sector}</strong>: ${description}<br><strong>Total Emissions</strong>: ${d3.format(",")(d.data.Total)}`;
+        document.getElementById('pie-info').innerHTML = `<strong>${d.data.Sector}</strong>: ${description}<br><strong>Total Emissions</strong>: ${d3.format(",")(d.data.Total)} kilotons`;
     });
 
     path.on("mouseover", function(event, d) {
