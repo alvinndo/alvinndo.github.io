@@ -127,14 +127,15 @@ function renderTopCountriesLineChart(data) {
     const height = +svg.attr("height");
     const margin = { top: 20, right: 150, bottom: 40, left: 50 };
 
-    // Filter for top 10 countries excluding 'World'
+    // Aggregate data to get the total emissions per country, excluding 'World'
     const countryTotals = d3.rollup(data, v => d3.sum(v, d => +d.Total), d => d.Country);
     const topCountries = Array.from(countryTotals)
         .filter(([country]) => country !== "World")
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10)
-        .map(d => d[0]);
+        .map(([country]) => country);
 
+    // Filter data to include only the top 10 countries
     const filteredData = data.filter(d => topCountries.includes(d.Country));
 
     const x = d3.scaleTime()
@@ -142,10 +143,12 @@ function renderTopCountriesLineChart(data) {
         .range([margin.left, width - margin.right]);
 
     const y = d3.scaleLinear()
-        .domain([0, d3.max(filteredData, d => +d.Total)]).nice()
+        .domain([0, d3.max(filteredData, d => d.Total)]).nice()
         .range([height - margin.bottom, margin.top]);
 
-    const color = d3.scaleOrdinal(d3.schemeCategory10).domain(topCountries);
+    const color = d3.scaleOrdinal()
+        .domain(topCountries)
+        .range(d3.schemeCategory10);
 
     const line = d3.line()
         .defined(d => !isNaN(d.Total))
@@ -156,7 +159,7 @@ function renderTopCountriesLineChart(data) {
 
     svg.append("g")
         .attr("transform", `translate(0,${height - margin.bottom})`)
-        .call(d3.axisBottom(x));
+        .call(d3.axisBottom(x).ticks(width / 80).tickSizeOuter(0));
 
     svg.append("g")
         .attr("transform", `translate(${margin.left},0)`)
@@ -177,20 +180,21 @@ function renderTopCountriesLineChart(data) {
             .attr("transform", `translate(${width - margin.right + 10},${y(d[1][d[1].length - 1].Total)})`)
             .attr("dy", ".35em")
             .attr("text-anchor", "start")
+            .style("font-size", "12px")
             .style("fill", color(d[0]))
             .text(d[0]);
     });
 
-    // Tooltips
+    // Tooltip and interactive lines setup
     const tooltip = d3.select("body").append("div")
         .attr("class", "tooltip")
         .style("opacity", 0)
         .style("position", "absolute")
         .style("background-color", "white")
         .style("border", "1px solid #ccc")
-        .style("padding", "5px");
+        .style("padding", "5px")
+        .style("pointer-events", "none");
 
-    // Interactive lines
     const focusVertical = svg.append('line')
         .attr('stroke', '#777')
         .attr('stroke-width', 1)
@@ -207,16 +211,17 @@ function renderTopCountriesLineChart(data) {
         .style('pointer-events', 'all')
         .on('mousemove', function(event) {
             const [xPos] = d3.pointer(event, this);
-            const x0 = x.invert(xPos);
-            const closestPoints = countryData.map(([country, values]) => {
-                const closest = values.reduce((prev, curr) => Math.abs(curr.Year - x0) < Math.abs(prev.Year - x0) ? curr : prev);
-                return { country, data: closest, color: color(country) };
-            });
+            const year = x.invert(xPos).getFullYear();
 
-            focusVertical.attr('x1', x(x0)).attr('x2', x(x0)).style('opacity', 1);
+            const closestPoints = countryData.map(([country, values]) => {
+                const closest = values.find(d => d.Year === year);
+                return { country, total: closest ? closest.Total : "No data", color: color(country) };
+            }).filter(d => d.total !== "No data").sort((a, b) => b.total - a.total);
+
+            focusVertical.attr('x1', x(year)).attr('x2', x(year)).style('opacity', 1);
 
             tooltip.html(closestPoints.map(d => 
-                `<span style='color:${d.color};'>&#9679;</span> ${d.country}: ${isNaN(d.data.Total) ? "No data" : d.data.Total}`
+                `<span style='color:${d.color};'>&#9679;</span> ${d.country}: ${d.total}`
             ).join("<br>"))
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 28) + "px")
