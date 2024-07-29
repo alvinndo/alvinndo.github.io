@@ -243,12 +243,10 @@ function renderPieChart(data) {
     const svg = d3.select("#chart3")
         .attr("width", 400)
         .attr("height", 400);
-    const width = svg.attr("width");
-    const height = svg.attr("height");
+    const width = +svg.attr("width");
+    const height = +svg.attr("height");
     const radius = Math.min(width, height) / 2;
     const g = svg.append("g").attr("transform", `translate(${width / 2},${height / 2})`);
-
-    const totalEmissions = d3.sum(data, d => d.Total); // Total emissions for percentage calculation
 
     const color = d3.scaleOrdinal()
         .domain(data.map(d => d.Sector))
@@ -262,47 +260,19 @@ function renderPieChart(data) {
         .innerRadius(0)
         .outerRadius(radius);
 
-    const arcLabel = d3.arc()
-        .innerRadius(radius * 0.8)
-        .outerRadius(radius * 0.8);
-
-    const outerArc = d3.arc()
-        .innerRadius(radius * 0.9)
-        .outerRadius(radius * 1.5); // For labels outside the pie
-
     const path = g.selectAll("path")
         .data(pie(data))
         .enter().append("path")
         .attr("fill", d => color(d.data.Sector))
         .attr("d", arc);
 
-    const labels = g.selectAll("text")
-        .data(pie(data))
-        .enter().append("text")
-        .each(function(d) {
-            const centroid = arcLabel.centroid(d);
-            const outerCentroid = outerArc.centroid(d);
-            const midAngle = d.startAngle + (d.endAngle - d.startAngle) / 2;
-            const x = midAngle < Math.PI ? outerCentroid[0] : outerCentroid[0];
-            const percentage = (d.data.Total / totalEmissions * 100);
-
-            d3.select(this)
-                .attr("transform", `translate(${centroid[0]}, ${centroid[1]})`)
-                .attr("dy", "0.35em")
-                .attr("text-anchor", "middle")
-                .text(`${d.data.Sector}: ${percentage.toFixed(1)}%`);
-
-            if (percentage < 5) {
-                d3.select(this)
-                    .attr("transform", `translate(${x}, ${outerCentroid[1]})`)
-                    .attr("text-anchor", midAngle < Math.PI ? "start" : "end");
-            }
-        });
-
     path.on("click", function(event, d) {
-        document.getElementById('pie-info').innerHTML = `Sector: ${d.data.Sector}, Total Emissions: ${d3.format(",")(d.data.Total)}`;
+        // Use the sector to get the description from the dictionary
+        const description = sectorDescriptions[d.data.Sector];
+        document.getElementById('pie-info').innerHTML = `<strong>${d.data.Sector}</strong>: ${description}`;
     });
 
+    // Optional: Enhance hover effect visibility
     path.on("mouseover", function(event, d) {
         d3.select(this).transition()
             .duration(200)
