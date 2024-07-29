@@ -1,20 +1,13 @@
+let currentScene = 0;
+const scenes = ["intro", "scene-1", "scene-2", "scene-3", "conclusion"];
 const globalDataUrl = "https://raw.githubusercontent.com/datasets/co2-fossil-global/master/global.csv";
 const countryDataUrl = "annual-co2-emissions-per-country.csv";
 
-let currentScene = 0;
-const scenes = ["intro", "scene-1", "scene-2", "scene-3", "conclusion"];
 // Function to show a specific scene
 function showScene(index) {
     scenes.forEach((scene, i) => {
-        const element = document.getElementById(scene);
-        if (element) {
-            element.style.display = i === index ? 'block' : 'none';
-        }
+        document.getElementById(scene).classList.toggle('visible', i === index);
     });
-    // Render charts when the respective scenes are shown
-    if (index === 1) renderLineChart(globalDataUrl);
-    if (index === 2) renderTopCountriesLineChart(countryDataUrl);
-    if (index === 3) renderPieChart(globalDataUrl);
 }
 
 // Functions to navigate through scenes
@@ -27,9 +20,6 @@ function previousScene() {
     currentScene = (currentScene - 1 + scenes.length) % scenes.length;
     showScene(currentScene);
 }
-
-// Initialize the first scene
-showScene(currentScene);
 
 
 // Fetch the country data and render the chart for scenes 1 and 2
