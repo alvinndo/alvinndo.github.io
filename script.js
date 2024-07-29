@@ -207,11 +207,16 @@ function renderTopCountriesLineChart(data) {
             const x0 = x.invert(xPos + margin.left); // Converts pixel to date
             const year = Math.round(x0.getFullYear());
 
-
             const closestPoints = countryData.map(([country, values]) => {
                 const closest = values.find(d => d.Year === year);
-                return { country, total: closest ? d3.format(",")(closest.Total) : "No data", color: color(country) };
-            }).filter(d => d.total !== "No data").sort((a, b) => b.total - a.total);
+                return { 
+                    country, 
+                    total: closest ? closest.Total : null, // Keep as number for sorting
+                    formattedTotal: closest ? d3.format(",")(closest.Total) : "No data", // Formatted for display
+                    color: color(country)
+                };
+            }).filter(d => d.total !== null) // Filter out "No data" for sorting
+              .sort((a, b) => b.total - a.total); // Sorting by total emissions numerically
 
             tooltip.html(`<strong>Year: ${year}</strong><br>` + closestPoints.map(d => 
                 `<span style='color:${d.color};'>&#9679;</span> ${d.country}: ${d.total}`
