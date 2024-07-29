@@ -11,3 +11,16 @@
     pointer-events: none;
     color: black;
 }
+
+#visualization {
+    min-height: 400px; /* Ensure there is enough room for any visualization */
+    padding: 20px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+}
+
+#description {
+    padding: 10px;
+    background-color: #fff;
+    border-top: 1px solid #ccc;
+}
