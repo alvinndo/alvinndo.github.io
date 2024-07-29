@@ -111,7 +111,7 @@ function renderGlobalCO2EmissionsChart(data) {
                 .duration(200)
                 .style("opacity", .9);
             
-            tooltip.html(`<strong>Year: ${closestPoint ? closestPoint.Year : "N/A"}</strong><br>Total: ${closestPoint ? closestPoint.Total : "No data"}`)
+            tooltip.html(`<strong>Year: ${closestPoint ? closestPoint.Year : "N/A"}</strong><br>Total: ${closestPoint ? d3.format(",")(closestPoint.Total) : "No data"}`)
                 .style("left", (event.pageX + 5) + "px")
                 .style("top", (event.pageY - 28) + "px");
         })
