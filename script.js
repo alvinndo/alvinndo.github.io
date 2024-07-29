@@ -21,7 +21,7 @@ function previousScene() {
     showScene(currentScene);
 }
 
-// Fetch the global data and render the charts for scenes 1 and 3
+// Fetch the global data and render the charts for scene 3
 d3.csv(globalDataUrl).then(globalData => {
     globalData.forEach(d => {
         d.Year = +d.Year;
@@ -33,26 +33,37 @@ d3.csv(globalDataUrl).then(globalData => {
         d["Gas Flaring"] = +d["Gas Flaring"];
         d["Per Capita"] = +d["Per Capita"];
     });
-    renderLineChart(globalData);
     renderPieChart(globalData);
 });
 
-// Fetch the country data and render the chart for scene 2
+// Fetch the country data and render the chart for scene 1 and 2
 d3.csv(countryDataUrl).then(countryData => {
     countryData = countryData.filter(d => d.Code);  // Filter out rows without a Code
     countryData.forEach(d => {
         d.Year = +d.Year;
         d.Total = +d["Annual CO2 emissions"];
     });
+    renderGlobalCO2EmissionsChart(countryData);
     renderTopCountriesLineChart(countryData);
 });
 
-// Scene 1: Line Chart of Global CO2 Emissions
-function renderLineChart(data) {
+// Scene 1: Global CO2 Emissions Over Time
+function renderGlobalCO2EmissionsChart(data) {
     const svg = d3.select("#chart1");
     const width = +svg.attr("width");
     const height = +svg.attr("height");
-    const margin = {top: 20, right: 30, bottom: 30, left: 40};
+    const margin = { top: 20, right: 100, bottom: 40, left: 50 };
+
+    // Aggregate data to get the total emissions per country
+    const countryTotals = d3.rollup(data, v => d3.sum(v, d => d.Total), d => d.Country);
+
+    const topCountries = Array.from(countryTotals, ([Country, Total]) => ({ Country, Total }))
+        .sort((a, b) => d3.descending(a.Total, b.Total))
+        .slice(0)
+        .map(d => d.Country);
+
+    // Filter data to include only the top 7 countries
+    const data = data.filter(d => topCountries.includes(d.Country));
 
     const x = d3.scaleTime()
         .domain(d3.extent(data, d => new Date(d.Year, 0, 1)))
@@ -62,17 +73,17 @@ function renderLineChart(data) {
         .domain([0, d3.max(data, d => d.Total)]).nice()
         .range([height - margin.bottom, margin.top]);
 
-    const line = d3.line()
-        .x(d => x(new Date(d.Year, 0, 1)))
-        .y(d => y(d.Total));
-
     svg.append("g")
         .attr("transform", `translate(0,${height - margin.bottom})`)
         .call(d3.axisBottom(x).ticks(width / 80).tickSizeOuter(0));
 
     svg.append("g")
         .attr("transform", `translate(${margin.left},0)`)
-        .call(d3.axisLeft(y));
+        .call(d3.axisLeft(y).tickFormat(d3.format(".2s")));
+
+    const line = d3.line()
+        .x(d => x(new Date(d.Year, 0, 1)))
+        .y(d => y(d.Total));
 
     svg.append("path")
         .datum(data)
@@ -80,9 +91,58 @@ function renderLineChart(data) {
         .attr("stroke", "steelblue")
         .attr("stroke-width", 1.5)
         .attr("d", line);
+
+    // Add tooltip
+    const tooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0)
+        .style("position", "absolute")
+        .style("background-color", "white")
+        .style("border", "1px solid #ccc")
+        .style("padding", "5px")
+        .style("pointer-events", "none");
+
+    // Overlay for capturing mouse events
+    svg.append("rect")
+        .attr("width", width - margin.left - margin.right)
+        .attr("height", height - margin.top - margin.bottom)
+        .attr("transform", `translate(${margin.left},${margin.top})`)
+        .style("fill", "none")
+        .style("pointer-events", "all")
+        .on("mousemove", function(event) {
+            const [xPos] = d3.pointer(event);
+            const year = x.invert(xPos).getFullYear();
+
+            const closestPoint = data.reduce((prev, curr) => 
+                Math.abs(curr.Year - year) < Math.abs(prev.Year - year) ? curr : prev
+            );
+
+            tooltip.transition()
+                .duration(200)
+                .style("opacity", .9);
+
+            tooltip.html(`Year: ${closestPoint.Year}<br>Total: ${closestPoint.Total}`)
+                .style("left", (event.pageX + 5) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", () => {
+            tooltip.transition()
+                .duration(500)
+                .style("opacity", 0);
+        });
 }
 
-// Scene 2: Line Chart of CO2 Emissions for Top 7 Countries
+// Fetch the country data and render the chart for scene 2
+d3.csv(countryDataUrl).then(countryData => {
+    countryData = countryData.filter(d => d.Code && d.Country !== "World");  // Filter out rows without a Code and exclude "World"
+    countryData.forEach(d => {
+        d.Year = +d.Year;
+        d.Total = +d["Annual CO2 emissions"];
+    });
+    renderTopCountriesLineChart(countryData);
+});
+
+// Scene 2: Line Chart of CO2 Emissions for Top 10 Countries
 function renderTopCountriesLineChart(data) {
     const svg = d3.select("#chart2");
     const width = +svg.attr("width");
@@ -92,13 +152,13 @@ function renderTopCountriesLineChart(data) {
     // Aggregate data to get the total emissions per country
     const countryTotals = d3.rollup(data, v => d3.sum(v, d => d.Total), d => d.Country);
 
-    // Get the top 7 countries by total emissions
+    // Get the top 10 countries by total emissions
     const topCountries = Array.from(countryTotals, ([Country, Total]) => ({ Country, Total }))
         .sort((a, b) => d3.descending(a.Total, b.Total))
-        .slice(0, 7)
+        .slice(0, 10)
         .map(d => d.Country);
 
-    // Filter data to include only the top 7 countries
+    // Filter data to include only the top 10 countries
     const filteredData = data.filter(d => topCountries.includes(d.Country));
 
     const x = d3.scaleTime()
@@ -188,7 +248,7 @@ function renderTopCountriesLineChart(data) {
                 .style("opacity", .9);
 
             tooltip.html(closestPoints.map(d => 
-                `<strong>${d.country}</strong><br>Year: ${d.Year}<br>Total: ${d.Total}`
+                `<strong>${d.country}</strong><br>Year: ${d.Year}<br>Total: ${isNaN(d.Total) ? "No data" : d.Total}`
             ).join("<br><br>"))
                 .style("left", (event.pageX + 5) + "px")
                 .style("top", (event.pageY - 28) + "px");
