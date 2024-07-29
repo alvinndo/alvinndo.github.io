@@ -39,6 +39,7 @@ d3.csv(globalDataUrl).then(globalData => {
 
 // Fetch the country data and render the chart for scene 2
 d3.csv(countryDataUrl).then(countryData => {
+    countryData = countryData.filter(d => d.Code);  // Filter out rows without a Code
     countryData.forEach(d => {
         d.Year = +d.Year;
         d.Total = +d["Annual CO2 emissions"];
@@ -157,7 +158,11 @@ function renderTopCountriesLineChart(data) {
     // Add tooltip
     const tooltip = d3.select("body").append("div")
         .attr("class", "tooltip")
-        .style("opacity", 0);
+        .style("opacity", 0)
+        .style("position", "absolute")
+        .style("background-color", "white")
+        .style("border", "1px solid #ccc")
+        .style("padding", "5px");
 
     svg.selectAll(".line")
         .data(countryData)
