@@ -35,18 +35,20 @@ d3.csv(countryDataUrl).then(countryData => {
 });
 
 // Fetch the global data and render the charts for scene 3
-d3.csv(globalDataUrl).then(globalData => {
-    globalData.forEach(d => {
-        d.Year = +d.Year;
-        d.Total = +d.Total;
-        d["Gas Fuel"] = +d["Gas Fuel"];
-        d["Liquid Fuel"] = +d["Liquid Fuel"];
-        d["Solid Fuel"] = +d["Solid Fuel"];
-        d.Cement = +d.Cement;
-        d["Gas Flaring"] = +d["Gas Flaring"];
-        d["Per Capita"] = +d["Per Capita"];
-    });
-    renderPieChart(globalData);
+d3.csv(globalDataUrl).then(data => {
+    // Take the last row (most recent year's data)
+    const mostRecentData = data[data.length - 1];
+    
+    // Pie chart array
+    const emissionsData = [
+        {Sector: "Gas Fuel", Total: +mostRecentData["Gas Fuel"]},
+        {Sector: "Liquid Fuel", Total: +mostRecentData["Liquid Fuel"]},
+        {Sector: "Solid Fuel", Total: +mostRecentData["Solid Fuel"]},
+        {Sector: "Cement", Total: +mostRecentData["Cement"]},
+        {Sector: "Gas Flaring", Total: +mostRecentData["Gas Flaring"]}
+    ];
+
+    renderPieChart(emissionsData);
 });
 
 // Scene 1: Global CO2 Emissions Over Time for "World"
@@ -233,52 +235,44 @@ function renderTopCountriesLineChart(data) {
 
 // Scene 3: Pie Chart of CO2 Emissions by Sector for a Selected Year
 function renderPieChart(data) {
-    const svg = d3.select("#chart3");
+    const svg = d3.select("#chart3")
+        .attr("width", 400)
+        .attr("height", 400);
     const width = +svg.attr("width");
     const height = +svg.attr("height");
     const radius = Math.min(width, height) / 2;
     const g = svg.append("g").attr("transform", `translate(${width / 2},${height / 2})`);
 
-    // Assuming you have already calculated the sectors data
+    const color = d3.scaleOrdinal()
+        .domain(data.map(d => d.Sector))
+        .range(d3.schemeCategory10);
+
     const pie = d3.pie()
-        .value(d => d.value)
+        .value(d => d.Total)
         .sort(null);
 
     const arc = d3.arc()
         .innerRadius(0)
         .outerRadius(radius);
 
-    const sectors = d3.nest() // Assuming sectors are already calculated
-        .key(d => d.Sector)
-        .rollup(v => d3.sum(v, d => +d.Total))
-        .entries(data);
-
-    const color = d3.scaleOrdinal()
-        .domain(sectors.map(d => d.key))
-        .range(d3.schemeCategory10);
-
     const path = g.selectAll("path")
-        .data(pie(sectors))
+        .data(pie(data))
         .enter().append("path")
-        .attr("fill", d => color(d.data.key))
-        .attr("d", arc)
-        .each(d => { d.outerRadius = radius - 20; }); // Store initial outerRadius for interaction
+        .attr("fill", d => color(d.data.Sector))
+        .attr("d", arc);
 
-    // Add click event to slices
     path.on("click", function(event, d) {
-        // Display the sector and value in the div below the pie chart
-        document.getElementById('pie-info').innerHTML = `Sector: ${d.data.key}, Total Emissions: ${d3.format(",")(d.data.value)}`;
+        document.getElementById('pie-info').innerHTML = `Sector: ${d.data.Sector}, Total Emissions: ${d3.format(",")(d.data.Total)}`;
     });
 
-    // Optional: Add hover effect to enlarge slices
     path.on("mouseover", function(event, d) {
         d3.select(this).transition()
             .duration(200)
-            .attr("d", arc.outerRadius(radius));
+            .attr("d", arc.outerRadius(radius + 10));
     })
     .on("mouseout", function(event, d) {
         d3.select(this).transition()
             .duration(200)
-            .attr("d", arc.outerRadius(radius - 20));
+            .attr("d", arc.outerRadius(radius));
     });
 }
