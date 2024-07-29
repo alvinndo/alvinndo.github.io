@@ -125,7 +125,7 @@ function renderTopCountriesLineChart(data) {
     const svg = d3.select("#chart2");
     const width = +svg.attr("width");
     const height = +svg.attr("height");
-    const margin = { top: 20, right: 150, bottom: 40, left: 50 };  // Increased right margin for labels
+    const margin = { top: 20, right: 150, bottom: 40, left: 50 };
 
     const x = d3.scaleTime()
         .domain(d3.extent(data, d => new Date(d.Year, 0, 1)))
@@ -140,7 +140,7 @@ function renderTopCountriesLineChart(data) {
         .range(d3.schemeCategory10);
 
     const line = d3.line()
-        .defined(d => !isNaN(d.Total))  // Ensure that the line is only drawn where data is defined
+        .defined(d => !isNaN(d.Total))
         .x(d => x(new Date(d.Year, 0, 1)))
         .y(d => y(d.Total));
 
@@ -154,7 +154,7 @@ function renderTopCountriesLineChart(data) {
         .attr("transform", `translate(${margin.left},0)`)
         .call(d3.axisLeft(y).tickFormat(d3.format(".2s")));
 
-    const countryPaths = svg.selectAll(".line")
+    svg.selectAll(".line")
         .data(countryData)
         .enter().append("path")
         .attr("class", "line")
@@ -163,53 +163,44 @@ function renderTopCountriesLineChart(data) {
         .attr("stroke-width", 1.5)
         .attr("d", d => line(d[1]));
 
-    // Country labels spaced out
-    countryPaths.each(function(d) {
-        const pathLength = this.getTotalLength();
-        const lastPoint = this.getPointAtLength(pathLength - 1);
-        svg.append("text")
-            .attr("class", "country-label")
-            .attr("transform", `translate(${width - margin.right + 10},${lastPoint.y})`)
-            .attr("dy", "0.35em")
-            .attr("text-anchor", "start")
-            .style("font-size", "12px")
-            .style("fill", color(d[0]))
-            .text(d[0]);
-    });
+    // Interactive lines
+    const focusVertical = svg.append('line')
+        .attr('stroke', '#777')
+        .attr('stroke-width', 1)
+        .attr('y1', margin.top)
+        .attr('y2', height - margin.bottom)
+        .style('opacity', 0);
 
-    // Tooltip setup
-    const tooltip = d3.select("body").append("div")
-        .attr("class", "tooltip")
-        .style("opacity", 0)
-        .style("position", "absolute")
-        .style("background-color", "white")
-        .style("border", "1px solid #ccc")
-        .style("padding", "5px")
-        .style("pointer-events", "none");
+    const focusHorizontal = svg.append('line')
+        .attr('stroke', '#777')
+        .attr('stroke-width', 1)
+        .attr('x1', margin.left)
+        .attr('x2', width - margin.right)
+        .style('opacity', 0);
 
-    svg.on("mousemove", function(event) {
-        const [xPos] = d3.pointer(event, this);
-        const year = x.invert(xPos).getFullYear();
+    svg.append('rect')
+        .attr('class', 'overlay')
+        .attr('width', width - margin.left - margin.right)
+        .attr('height', height - margin.top - margin.bottom)
+        .attr('transform', `translate(${margin.left},${margin.top})`)
+        .style('fill', 'none')
+        .style('pointer-events', 'all')
+        .on('mouseover', () => {
+            focusVertical.style('opacity', 1);
+            focusHorizontal.style('opacity', 1);
+        })
+        .on('mouseout', () => {
+            focusVertical.style('opacity', 0);
+            focusHorizontal.style('opacity', 0);
+        })
+        .on('mousemove', function(event) {
+            const [xPos, yPos] = d3.pointer(event, this);
+            const x0 = x.invert(xPos + margin.left);
+            const y0 = y.invert(yPos);
 
-        const closestPoints = countryData.map(([country, values]) => {
-            const closest = values.find(d => d.Year === year);
-            return { country, total: closest ? closest.Total : "No data", color: color(country) };
-        }).filter(d => d.total !== "No data").sort((a, b) => b.total - a.total); // Sorting and filtering
-
-        tooltip.transition()
-            .duration(100)
-            .style("opacity", .9);
-
-        tooltip.html(closestPoints.map(d => 
-            `<span style='color:${d.color};'>&#9679;</span> ${d.country}: ${d.total}`
-        ).join("<br>"))
-            .style("left", (event.pageX + 10) + "px")
-            .style("top", (event.pageY - 28) + "px");
-    }).on("mouseout", function() {
-        tooltip.transition()
-            .duration(200)
-            .style("opacity", 0);
-    });
+            focusVertical.attr('x1', xPos + margin.left).attr('x2', xPos + margin.left);
+            focusHorizontal.attr('y1', yPos + margin.top).attr('y2', yPos + margin.top);
+        });
 }
 
 // Scene 3: Pie Chart of CO2 Emissions by Sector for a Selected Year
