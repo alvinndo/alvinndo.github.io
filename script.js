@@ -219,7 +219,7 @@ function renderTopCountriesLineChart(data) {
               .sort((a, b) => b.total - a.total); // Sorting by total emissions numerically
 
             tooltip.html(`<strong>Year: ${year}</strong><br>` + closestPoints.map(d => 
-                `<span style='color:${d.color};'>&#9679;</span> ${d.country}: ${d.total}`
+                `<span style='color:${d.color};'>&#9679;</span> ${d.country}: ${d.formattedTotal}`
             ).join("<br>"))
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 28) + "px")
