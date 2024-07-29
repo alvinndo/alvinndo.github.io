@@ -106,10 +106,6 @@ function renderGlobalCO2EmissionsChart(data) {
             const [xPos] = d3.pointer(event, this);  // Relative to the overlay
             const x0 = x.invert(xPos + margin.left); // Converts pixel to date
             const year = Math.round(x0.getFullYear());
-
-            tooltip.transition()
-                .duration(100)
-                .style("opacity", .9);
             
             tooltip.html(`<strong>Year: ${closestPoint ? closestPoint.Year : "N/A"}</strong><br>Total: ${closestPoint ? d3.format(",")(closestPoint.Total) : "No data"}`)
                 .style("left", (event.pageX + 5) + "px")
@@ -228,17 +224,27 @@ function renderTopCountriesLineChart(data) {
                 .style("opacity", 0.9);
         })
         .on('mouseout', function() {
-            tooltip.style("opacity", 0);
+            tooltip.transition()
+                .duration(200)
+                style("opacity", 0);
         });
 }
 
 // Scene 3: Pie Chart of CO2 Emissions by Sector for a Selected Year
+const sectorDescriptions = {
+    "Gas Fuel": "Emissions from the combustion of gas fuels such as natural gas and butane.",
+    "Liquid Fuel": "Emissions from the combustion of liquid fuels like gasoline and diesel.",
+    "Solid Fuel": "Emissions from the combustion of solid fuels like coal and wood.",
+    "Cement": "CO2 emissions from the production of cement, involving the calcination of limestone.",
+    "Gas Flaring": "Emissions from the burning of gas released during oil extraction processes."
+};
+
 function renderPieChart(data) {
     const svg = d3.select("#chart3")
         .attr("width", 400)
         .attr("height", 400);
-    const width = +svg.attr("width");
-    const height = +svg.attr("height");
+    const width = svg.attr("width");
+    const height = svg.attr("height");
     const radius = Math.min(width, height) / 2;
     const g = svg.append("g").attr("transform", `translate(${width / 2},${height / 2})`);
 
@@ -260,6 +266,10 @@ function renderPieChart(data) {
         .innerRadius(radius * 0.8)
         .outerRadius(radius * 0.8);
 
+    const outerArc = d3.arc()
+        .innerRadius(radius * 0.9)
+        .outerRadius(radius * 1.5); // For labels outside the pie
+
     const path = g.selectAll("path")
         .data(pie(data))
         .enter().append("path")
@@ -269,27 +279,38 @@ function renderPieChart(data) {
     const labels = g.selectAll("text")
         .data(pie(data))
         .enter().append("text")
-        .attr("transform", d => `translate(${arcLabel.centroid(d)})`)
-        .attr("dy", "0.35em")
-        .attr("text-anchor", "middle")
-        .text(d => `${d.data.Sector}: ${(d.data.Total / totalEmissions * 100).toFixed(1)}%`);
+        .each(function(d) {
+            const centroid = arcLabel.centroid(d);
+            const outerCentroid = outerArc.centroid(d);
+            const midAngle = d.startAngle + (d.endAngle - d.startAngle) / 2;
+            const x = midAngle < Math.PI ? outerCentroid[0] : outerCentroid[0];
+            const percentage = (d.data.Total / totalEmissions * 100);
+
+            d3.select(this)
+                .attr("transform", `translate(${centroid[0]}, ${centroid[1]})`)
+                .attr("dy", "0.35em")
+                .attr("text-anchor", "middle")
+                .text(`${d.data.Sector}: ${percentage.toFixed(1)}%`);
+
+            if (percentage < 5) {
+                d3.select(this)
+                    .attr("transform", `translate(${x}, ${outerCentroid[1]})`)
+                    .attr("text-anchor", midAngle < Math.PI ? "start" : "end");
+            }
+        });
 
     path.on("click", function(event, d) {
         document.getElementById('pie-info').innerHTML = `Sector: ${d.data.Sector}, Total Emissions: ${d3.format(",")(d.data.Total)}`;
     });
 
     path.on("mouseover", function(event, d) {
-        const hoverArc = d3.arc()
-            .innerRadius(0)
-            .outerRadius(radius * 1.1); // Increase radius significantly for small slices
-
         d3.select(this).transition()
             .duration(200)
-            .attr("d", hoverArc);
+            .attr("d", arc.outerRadius(radius + 10));
     })
     .on("mouseout", function(event, d) {
         d3.select(this).transition()
             .duration(200)
-            .attr("d", arc);
+            .attr("d", arc.outerRadius(radius));
     });
 }
