@@ -103,9 +103,9 @@ function renderGlobalCO2EmissionsChart(data) {
         .style("fill", "none")
         .style("pointer-events", "all")
         .on("mousemove", function(event) {
-            const [xPos] = d3.pointer(event);
-            const year = x.invert(xPos).getFullYear();
-            const closestPoint = data.find(d => d.Year === year);
+            const [xPos] = d3.pointer(event, this);  // Relative to the overlay
+            const x0 = x.invert(xPos + margin.left); // Converts pixel to date
+            const year = Math.round(x0.getFullYear());
 
             tooltip.transition()
                 .duration(100)
@@ -228,7 +228,6 @@ function renderTopCountriesLineChart(data) {
                 .style("opacity", 0.9);
         })
         .on('mouseout', function() {
-            tooltip.duration(1000)
             tooltip.style("opacity", 0);
         });
 }
@@ -243,6 +242,8 @@ function renderPieChart(data) {
     const radius = Math.min(width, height) / 2;
     const g = svg.append("g").attr("transform", `translate(${width / 2},${height / 2})`);
 
+    const totalEmissions = d3.sum(data, d => d.Total); // Total emissions for percentage calculation
+
     const color = d3.scaleOrdinal()
         .domain(data.map(d => d.Sector))
         .range(d3.schemeCategory10);
@@ -255,24 +256,40 @@ function renderPieChart(data) {
         .innerRadius(0)
         .outerRadius(radius);
 
+    const arcLabel = d3.arc()
+        .innerRadius(radius * 0.8)
+        .outerRadius(radius * 0.8);
+
     const path = g.selectAll("path")
         .data(pie(data))
         .enter().append("path")
         .attr("fill", d => color(d.data.Sector))
         .attr("d", arc);
 
+    const labels = g.selectAll("text")
+        .data(pie(data))
+        .enter().append("text")
+        .attr("transform", d => `translate(${arcLabel.centroid(d)})`)
+        .attr("dy", "0.35em")
+        .attr("text-anchor", "middle")
+        .text(d => `${d.data.Sector}: ${(d.data.Total / totalEmissions * 100).toFixed(1)}%`);
+
     path.on("click", function(event, d) {
         document.getElementById('pie-info').innerHTML = `Sector: ${d.data.Sector}, Total Emissions: ${d3.format(",")(d.data.Total)}`;
     });
 
     path.on("mouseover", function(event, d) {
+        const hoverArc = d3.arc()
+            .innerRadius(0)
+            .outerRadius(radius * 1.1); // Increase radius significantly for small slices
+
         d3.select(this).transition()
             .duration(200)
-            .attr("d", arc.outerRadius(radius + 10));
+            .attr("d", hoverArc);
     })
     .on("mouseout", function(event, d) {
         d3.select(this).transition()
             .duration(200)
-            .attr("d", arc.outerRadius(radius));
+            .attr("d", arc);
     });
 }
