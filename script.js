@@ -226,6 +226,7 @@ function renderTopCountriesLineChart(data) {
                 .style("opacity", 0.9);
         })
         .on('mouseout', function() {
+            tooltip.duration(1000)
             tooltip.style("opacity", 0);
         });
 }
