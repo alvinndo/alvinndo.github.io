@@ -203,7 +203,7 @@ function renderTopCountriesLineChart(data) {
         .style('fill', 'none')
         .style('pointer-events', 'all')
         .on('mousemove', function(event) {
-            const xPos = d3.pointer(event, this)[0];  // Relative to the overlay
+            const [xPos] = d3.pointer(event, this);  // Relative to the overlay
             const x0 = x.invert(xPos + margin.left); // Converts pixel to date
             const year = Math.round(x0.getFullYear());
 
