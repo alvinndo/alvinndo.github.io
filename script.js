@@ -86,13 +86,13 @@ function renderTopCountriesLineChart(data) {
     const svg = d3.select("#chart2");
     const width = +svg.attr("width");
     const height = +svg.attr("height");
-    const margin = {top: 20, right: 30, bottom: 40, left: 40};
+    const margin = { top: 20, right: 100, bottom: 40, left: 50 };
 
     // Aggregate data to get the total emissions per country
     const countryTotals = d3.rollup(data, v => d3.sum(v, d => d.Total), d => d.Country);
 
     // Get the top 7 countries by total emissions
-    const topCountries = Array.from(countryTotals, ([Country, Total]) => ({Country, Total}))
+    const topCountries = Array.from(countryTotals, ([Country, Total]) => ({ Country, Total }))
         .sort((a, b) => d3.descending(a.Total, b.Total))
         .slice(0, 7)
         .map(d => d.Country);
@@ -128,7 +128,7 @@ function renderTopCountriesLineChart(data) {
 
     svg.append("g")
         .attr("transform", `translate(${margin.left},0)`)
-        .call(d3.axisLeft(y));
+        .call(d3.axisLeft(y).tickFormat(d3.format(".2s")));
 
     svg.selectAll(".line")
         .data(countryData)
@@ -138,6 +138,21 @@ function renderTopCountriesLineChart(data) {
         .attr("stroke", d => color(d[0]))
         .attr("stroke-width", 1.5)
         .attr("d", d => line(d[1]));
+
+    // Add country labels on the right side of the graph
+    svg.selectAll(".country-label")
+        .data(countryData)
+        .enter().append("text")
+        .attr("class", "country-label")
+        .attr("transform", d => {
+            const lastDataPoint = d[1][d[1].length - 1];
+            return `translate(${x(new Date(lastDataPoint.Year, 0, 1))},${y(lastDataPoint.Total)})`;
+        })
+        .attr("x", 5)
+        .attr("dy", "0.35em")
+        .style("font-size", "12px")
+        .text(d => d[0])
+        .attr("fill", d => color(d[0]));
 
     // Add tooltip
     const tooltip = d3.select("body").append("div")
@@ -163,7 +178,7 @@ function renderTopCountriesLineChart(data) {
                 .style("left", (event.pageX + 5) + "px")
                 .style("top", (event.pageY - 28) + "px");
         })
-        .on("mouseout", (d) => {
+        .on("mouseout", () => {
             tooltip.transition()
                 .duration(500)
                 .style("opacity", 0);
