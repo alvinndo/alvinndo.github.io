@@ -20,6 +20,26 @@ function previousScene() {
     currentScene = (currentScene - 1 + scenes.length) % scenes.length;
     showScene(currentScene);
 }
+// Fetch the global data and render the chart for scene 1
+d3.csv(countryDataUrl).then(worldData => {
+    worldData = worldData.filter(d => d.Country == "World")
+    worldData.forEach(d => {
+        d.Year = +d.Year;
+        d.Total = +d.Total;
+    });
+    renderGlobalCO2EmissionsChart(worldData);
+});
+
+
+// Fetch the country data and render the chart for scene 2
+d3.csv(countryDataUrl).then(countryData => {
+    countryData = countryData.filter(d => d.Code && d.Country !== "World");  // Filter out rows without a Code and exclude "World"
+    countryData.forEach(d => {
+        d.Year = +d.Year;
+        d.Total = +d["Annual CO2 emissions"];
+    });
+    renderTopCountriesLineChart(countryData);
+});
 
 // Fetch the global data and render the charts for scene 3
 d3.csv(globalDataUrl).then(globalData => {
@@ -36,34 +56,12 @@ d3.csv(globalDataUrl).then(globalData => {
     renderPieChart(globalData);
 });
 
-// Fetch the country data and render the chart for scene 1 and 2
-d3.csv(countryDataUrl).then(countryData => {
-    countryData = countryData.filter(d => d.Code);  // Filter out rows without a Code
-    countryData.forEach(d => {
-        d.Year = +d.Year;
-        d.Total = +d["Annual CO2 emissions"];
-    });
-    renderGlobalCO2EmissionsChart(countryData);
-    renderTopCountriesLineChart(countryData);
-});
-
 // Scene 1: Global CO2 Emissions Over Time
 function renderGlobalCO2EmissionsChart(data) {
     const svg = d3.select("#chart1");
     const width = +svg.attr("width");
     const height = +svg.attr("height");
     const margin = { top: 20, right: 100, bottom: 40, left: 50 };
-
-    // Aggregate data to get the total emissions per country
-    const countryTotals = d3.rollup(data, v => d3.sum(v, d => d.Total), d => d.Country);
-
-    const topCountries = Array.from(countryTotals, ([Country, Total]) => ({ Country, Total }))
-        .sort((a, b) => d3.descending(a.Total, b.Total))
-        .slice(0)
-        .map(d => d.Country);
-
-    // Filter data to include only the top 7 countries
-    const data = data.filter(d => topCountries.includes(d.Country));
 
     const x = d3.scaleTime()
         .domain(d3.extent(data, d => new Date(d.Year, 0, 1)))
@@ -131,16 +129,6 @@ function renderGlobalCO2EmissionsChart(data) {
                 .style("opacity", 0);
         });
 }
-
-// Fetch the country data and render the chart for scene 2
-d3.csv(countryDataUrl).then(countryData => {
-    countryData = countryData.filter(d => d.Code && d.Country !== "World");  // Filter out rows without a Code and exclude "World"
-    countryData.forEach(d => {
-        d.Year = +d.Year;
-        d.Total = +d["Annual CO2 emissions"];
-    });
-    renderTopCountriesLineChart(countryData);
-});
 
 // Scene 2: Line Chart of CO2 Emissions for Top 10 Countries
 function renderTopCountriesLineChart(data) {
