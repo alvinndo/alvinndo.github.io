@@ -3,27 +3,33 @@ const countryDataUrl = "annual-co2-emissions-per-country.csv";
 
 let currentScene = 0;
 const scenes = ["intro", "scene-1", "scene-2", "scene-3", "conclusion"];
-// Show a specific scene based on its index
+// Function to show a specific scene
 function showScene(index) {
     scenes.forEach((scene, i) => {
         const element = document.getElementById(scene);
         if (element) {
-            element.style.display = i === index ? 'block' : 'none'; // Using direct style for compatibility
+            element.style.display = i === index ? 'block' : 'none';
         }
     });
+    // Render charts when the respective scenes are shown
+    if (index === 1) renderLineChart(globalDataUrl);
+    if (index === 2) renderTopCountriesLineChart(countryDataUrl);
+    if (index === 3) renderPieChart(globalDataUrl);
 }
 
-// Navigate to the next scene
+// Functions to navigate through scenes
 function nextScene() {
-    currentScene = (currentScene + 1) % scenes.length; // Ensures the navigation loops around
+    currentScene = (currentScene + 1) % scenes.length;
     showScene(currentScene);
 }
 
-// Navigate to the previous scene
 function previousScene() {
-    currentScene = (currentScene - 1 + scenes.length) % scenes.length; // Ensures the navigation loops around
+    currentScene = (currentScene - 1 + scenes.length) % scenes.length;
     showScene(currentScene);
 }
+
+// Initialize the first scene
+showScene(currentScene);
 
 
 // Fetch the country data and render the chart for scenes 1 and 2

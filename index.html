@@ -47,29 +47,13 @@
     <!-- Conclusion Scene -->
     <div id="conclusion" class="scene">
         <h1>Data Source</h1>
-        <p>All data used in this visualization are sourced from the Global CO2 Emissions Database, available publicly at <a href="https://data.worldbank.org/indicator/EN.ATM.CO2E.PC">World Bank</a>.</p>
+        <p>All data used in this visualization are sourced from the Global CO2 Emissions Database, available publicly at <a href="https://data.worldbank.org/indicator/EN.ATM.CO2E.PC">World Bank</a>.
+        and Hannah Ritchie and Max Roser (2020) - “CO₂ emissions” Published online at<br> OurWorldInData.org. Retrieved from: 'https://ourworldindata.org/co2-emissions' <br>[Online Resource]</p>
     </div>
     <!-- Navigation Buttons -->
     <button onclick="changeScene(-1)">Previous</button>
     <button onclick="changeScene(1)">Next</button>
 
-    <script>
-        let currentSceneIndex = 0;
-        const scenes = document.querySelectorAll('.scene');
-
-        function changeScene(direction) {
-            scenes[currentSceneIndex].classList.remove('visible'); // Hide current scene
-            currentSceneIndex += direction;
-            if (currentSceneIndex >= scenes.length) {
-                currentSceneIndex = scenes.length - 1;
-            } else if (currentSceneIndex < 0) {
-                currentSceneIndex = 0;
-            }
-            scenes[currentSceneIndex].classList.add('visible'); // Show new scene
-        }
-
-        // Initialize the first scene
-        scenes[currentSceneIndex].classList.add('visible');
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
