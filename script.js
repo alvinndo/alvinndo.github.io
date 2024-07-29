@@ -103,8 +103,8 @@ function renderGlobalCO2EmissionsChart(data) {
         .style("fill", "none")
         .style("pointer-events", "all")
         .on("mousemove", function(event) {
-            const [xPos] = d3.pointer(event, this);  // Relative to the overlay
-            const x0 = x.invert(xPos + margin.left); // Converts pixel to date
+            const xPos = d3.pointer(event, this)[0];  // Relative to the overlay
+            const x0 = x.invert(xPos); // Converts pixel to date
             const year = Math.round(x0.getFullYear());
             
             tooltip.html(`<strong>Year: ${closestPoint ? closestPoint.Year : "N/A"}</strong><br>Total: ${closestPoint ? d3.format(",")(closestPoint.Total) : "No data"}`)
@@ -226,7 +226,7 @@ function renderTopCountriesLineChart(data) {
         .on('mouseout', function() {
             tooltip.transition()
                 .duration(200)
-                style("opacity", 0);
+                .style("opacity", 0);
         });
 }
 
