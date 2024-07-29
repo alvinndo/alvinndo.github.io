@@ -103,17 +103,21 @@ function renderGlobalCO2EmissionsChart(data) {
         .style("fill", "none")
         .style("pointer-events", "all")
         .on("mousemove", function(event) {
-            const [xPos] = d3.pointer(event);
+            const [xPos] = d3.pointer(event, this);
             const year = x.invert(xPos + margin.left).getFullYear();
             const closestPoint = data.find(d => d.Year === year);
+
+            tooltip.transition()
+                .duration(200)
+                .style("opacity", .9);
             
-            tooltip.html(`<strong>Year: ${closestPoint ? closestPoint.Year : "N/A"}</strong><br>Total: ${closestPoint ? d3.format(",")(closestPoint.Total) : "No data"}`)
+            tooltip.html(`<strong>Year: ${closestPoint ? closestPoint.Year : "N/A"}</strong><br>Total: ${closestPoint ? closestPoint.Total : "No data"}`)
                 .style("left", (event.pageX + 5) + "px")
                 .style("top", (event.pageY - 28) + "px");
         })
         .on("mouseout", () => {
             tooltip.transition()
-                .duration(200)
+                .duration(500)
                 .style("opacity", 0);
         });
 }
@@ -260,27 +264,44 @@ function renderPieChart(data) {
         .innerRadius(0)
         .outerRadius(radius);
 
+    const outerArc = d3.arc()
+        .innerRadius(radius * 1.1)
+        .outerRadius(radius * 1.1);
+
+    const labelsArc = d3.arc() // Slightly larger arc for placing labels neatly
+        .innerRadius(radius * 0.8)
+        .outerRadius(radius * 0.8);
+
+    const total = d3.sum(data, d => d.Total);
+
     const path = g.selectAll("path")
         .data(pie(data))
         .enter().append("path")
         .attr("fill", d => color(d.data.Sector))
-        .attr("d", arc);
+        .attr("d", arc)
+        .each(d => { d.outerRadius = radius - 10; }); // Store initial outerRadius for hover effect
+
+    g.selectAll("text")
+        .data(pie(data))
+        .enter().append("text")
+        .attr("transform", d => `translate(${labelsArc.centroid(d)})`)
+        .attr("dy", "0.35em")
+        .attr("text-anchor", "middle")
+        .text(d => `${d.data.Sector}: ${(d.data.Total / total * 100).toFixed(1)}%`);
 
     path.on("click", function(event, d) {
-        // Use the sector to get the description from the dictionary
         const description = sectorDescriptions[d.data.Sector];
-        document.getElementById('pie-info').innerHTML = `<strong>${d.data.Sector}</strong>: ${description}`;
+        document.getElementById('pie-info').innerHTML = `<strong>${d.data.Sector}</strong>: ${description}<br>Total Emissions: ${d3.format(",")(d.data.Total)}`;
     });
 
-    // Optional: Enhance hover effect visibility
     path.on("mouseover", function(event, d) {
         d3.select(this).transition()
             .duration(200)
-            .attr("d", arc.outerRadius(radius + 10));
+            .attr("d", arc.outerRadius(radius * 1.1)); // Expand slice on hover
     })
     .on("mouseout", function(event, d) {
         d3.select(this).transition()
             .duration(200)
-            .attr("d", arc.outerRadius(radius));
+            .attr("d", arc.outerRadius(radius)); // Contract slice on mouse out
     });
 }
