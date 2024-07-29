@@ -162,24 +162,34 @@ function renderTopCountriesLineChart(data) {
         .style("position", "absolute")
         .style("background-color", "white")
         .style("border", "1px solid #ccc")
-        .style("padding", "5px");
+        .style("padding", "5px")
+        .style("pointer-events", "none");
 
-    svg.selectAll(".line")
-        .data(countryData)
-        .enter().append("g")
-        .attr("class", "hover-line")
-        .selectAll("circle")
-        .data(d => d[1])
-        .enter().append("circle")
-        .attr("cx", d => x(new Date(d.Year, 0, 1)))
-        .attr("cy", d => y(d.Total))
-        .attr("r", 3)
-        .attr("fill", d => color(d.Country))
-        .on("mouseover", (event, d) => {
+    // Overlay for capturing mouse events
+    svg.append("rect")
+        .attr("width", width - margin.left - margin.right)
+        .attr("height", height - margin.top - margin.bottom)
+        .attr("transform", `translate(${margin.left},${margin.top})`)
+        .style("fill", "none")
+        .style("pointer-events", "all")
+        .on("mousemove", function(event) {
+            const [xPos] = d3.pointer(event);
+            const year = x.invert(xPos).getFullYear();
+
+            const closestPoints = countryData.map(([country, values]) => {
+                const closest = values.reduce((prev, curr) => 
+                    Math.abs(curr.Year - year) < Math.abs(prev.Year - year) ? curr : prev
+                );
+                return { country, ...closest };
+            });
+
             tooltip.transition()
                 .duration(200)
                 .style("opacity", .9);
-            tooltip.html(`Country: ${d.Country}<br>Year: ${d.Year}<br>Total: ${d.Total}`)
+
+            tooltip.html(closestPoints.map(d => 
+                `<strong>${d.country}</strong><br>Year: ${d.Year}<br>Total: ${d.Total}`
+            ).join("<br><br>"))
                 .style("left", (event.pageX + 5) + "px")
                 .style("top", (event.pageY - 28) + "px");
         })
