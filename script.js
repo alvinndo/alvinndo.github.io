@@ -1,5 +1,5 @@
 let currentScene = 0;
-const scenes = ["intro", "scene-1", "scene-2", "scene-3", "conclusion"];
+const scenes = ["intro","scene-1", "scene-2", "scene-3", "conclusion"];
 const globalDataUrl = "https://raw.githubusercontent.com/datasets/co2-fossil-global/master/global.csv";
 const countryDataUrl = "annual-co2-emissions-per-country.csv";
 
