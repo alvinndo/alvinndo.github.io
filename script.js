@@ -1,22 +1,29 @@
 const globalDataUrl = "https://raw.githubusercontent.com/datasets/co2-fossil-global/master/global.csv";
 const countryDataUrl = "annual-co2-emissions-per-country.csv";
 
-let currentSceneIndex = 0;
-const scenes = document.querySelectorAll('.scene');
-
-function changeScene(direction) {
-    scenes[currentSceneIndex].classList.remove('visible'); // Hide current scene
-    currentSceneIndex += direction;
-    if (currentSceneIndex >= scenes.length) {
-        currentSceneIndex = scenes.length - 1;
-    } else if (currentSceneIndex < 0) {
-        currentSceneIndex = 0;
-    }
-    scenes[currentSceneIndex].classList.add('visible'); // Show new scene
+let currentScene = 0;
+const scenes = ["intro", "scene-1", "scene-2", "scene-3", "conclusion"];
+// Show a specific scene based on its index
+function showScene(index) {
+    scenes.forEach((scene, i) => {
+        const element = document.getElementById(scene);
+        if (element) {
+            element.style.display = i === index ? 'block' : 'none'; // Using direct style for compatibility
+        }
+    });
 }
 
-// Initialize the first scene
-scenes[currentSceneIndex].classList.add('visible');
+// Navigate to the next scene
+function nextScene() {
+    currentScene = (currentScene + 1) % scenes.length; // Ensures the navigation loops around
+    showScene(currentScene);
+}
+
+// Navigate to the previous scene
+function previousScene() {
+    currentScene = (currentScene - 1 + scenes.length) % scenes.length; // Ensures the navigation loops around
+    showScene(currentScene);
+}
 
 
 // Fetch the country data and render the chart for scenes 1 and 2
