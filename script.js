@@ -246,7 +246,7 @@ const sectorDescriptions = {
 function renderPieChart(data) {
     const svg = d3.select("#chart3")
         .attr("width", 800)
-        attr("height", 850);
+        .attr("height", 850);
     const radius = Math.min(width, height) / 2;
     const g = svg.append("g").attr("transform", `translate(${width / 2},${height / 2})`);
 
