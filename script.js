@@ -20,25 +20,18 @@ function previousScene() {
     currentScene = (currentScene - 1 + scenes.length) % scenes.length;
     showScene(currentScene);
 }
-// Fetch the global data and render the chart for scene 1
-d3.csv(countryDataUrl).then(worldData => {
-    worldData = worldData.filter(d => d.Country == "World")
-    worldData.forEach(d => {
-        d.Year = +d.Year;
-        d.Total = +d.Total;
-    });
-    renderGlobalCO2EmissionsChart(worldData);
-});
 
 
-// Fetch the country data and render the chart for scene 2
+// Fetch the country data and render the chart for scenes 1 and 2
 d3.csv(countryDataUrl).then(countryData => {
-    countryData = countryData.filter(d => d.Code && d.Country !== "World");  // Filter out rows without a Code and exclude "World"
+    countryData = countryData.filter(d => d.Code);  // Filter out rows without a Code
     countryData.forEach(d => {
         d.Year = +d.Year;
         d.Total = +d["Annual CO2 emissions"];
     });
-    renderTopCountriesLineChart(countryData);
+    const worldData = countryData.filter(d => d.Country === "World");
+    renderGlobalCO2EmissionsChart(worldData);
+    renderTopCountriesLineChart(countryData.filter(d => d.Country !== "World"));
 });
 
 // Fetch the global data and render the charts for scene 3
@@ -56,7 +49,7 @@ d3.csv(globalDataUrl).then(globalData => {
     renderPieChart(globalData);
 });
 
-// Scene 1: Global CO2 Emissions Over Time
+// Scene 1: Global CO2 Emissions Over Time for "World"
 function renderGlobalCO2EmissionsChart(data) {
     const svg = d3.select("#chart1");
     const width = +svg.attr("width");
@@ -110,16 +103,13 @@ function renderGlobalCO2EmissionsChart(data) {
         .on("mousemove", function(event) {
             const [xPos] = d3.pointer(event);
             const year = x.invert(xPos).getFullYear();
-
-            const closestPoint = data.reduce((prev, curr) => 
-                Math.abs(curr.Year - year) < Math.abs(prev.Year - year) ? curr : prev
-            );
+            const closestPoint = data.find(d => d.Year === year);
 
             tooltip.transition()
                 .duration(200)
                 .style("opacity", .9);
-
-            tooltip.html(`Year: ${closestPoint.Year}<br>Total: ${closestPoint.Total}`)
+            
+            tooltip.html(`Year: ${closestPoint ? closestPoint.Year : "N/A"}<br>Total: ${closestPoint ? closestPoint.Total : "No data"}`)
                 .style("left", (event.pageX + 5) + "px")
                 .style("top", (event.pageY - 28) + "px");
         })
@@ -135,51 +125,36 @@ function renderTopCountriesLineChart(data) {
     const svg = d3.select("#chart2");
     const width = +svg.attr("width");
     const height = +svg.attr("height");
-    const margin = { top: 20, right: 100, bottom: 40, left: 50 };
-
-    // Aggregate data to get the total emissions per country
-    const countryTotals = d3.rollup(data, v => d3.sum(v, d => d.Total), d => d.Country);
-
-    // Get the top 10 countries by total emissions
-    const topCountries = Array.from(countryTotals, ([Country, Total]) => ({ Country, Total }))
-        .sort((a, b) => d3.descending(a.Total, b.Total))
-        .slice(0, 10)
-        .map(d => d.Country);
-
-    // Filter data to include only the top 10 countries
-    const filteredData = data.filter(d => topCountries.includes(d.Country));
+    const margin = { top: 20, right: 150, bottom: 40, left: 50 };  // Increased right margin for labels
 
     const x = d3.scaleTime()
-        .domain(d3.extent(filteredData, d => new Date(d.Year, 0, 1)))
+        .domain(d3.extent(data, d => new Date(d.Year, 0, 1)))
         .range([margin.left, width - margin.right]);
 
     const y = d3.scaleLinear()
-        .domain([0, d3.max(filteredData, d => d.Total)]).nice()
+        .domain([0, d3.max(data, d => d.Total)]).nice()
         .range([height - margin.bottom, margin.top]);
 
     const color = d3.scaleOrdinal()
-        .domain(topCountries)
+        .domain(data.map(d => d.Country))
         .range(d3.schemeCategory10);
 
     const line = d3.line()
+        .defined(d => !isNaN(d.Total))  // Ensure that the line is only drawn where data is defined
         .x(d => x(new Date(d.Year, 0, 1)))
         .y(d => y(d.Total));
 
-    const countryData = d3.groups(filteredData, d => d.Country);
+    const countryData = d3.groups(data, d => d.Country);
 
     svg.append("g")
         .attr("transform", `translate(0,${height - margin.bottom})`)
-        .call(d3.axisBottom(x).ticks(width / 80).tickSizeOuter(0)
-            .tickFormat(d => {
-                const year = d.getFullYear();
-                return year % 50 === 0 || year >= 2000 && year % 10 === 0 ? year : "";
-            }));
+        .call(d3.axisBottom(x).ticks(width / 80).tickSizeOuter(0));
 
     svg.append("g")
         .attr("transform", `translate(${margin.left},0)`)
         .call(d3.axisLeft(y).tickFormat(d3.format(".2s")));
 
-    svg.selectAll(".line")
+    const countryPaths = svg.selectAll(".line")
         .data(countryData)
         .enter().append("path")
         .attr("class", "line")
@@ -188,22 +163,21 @@ function renderTopCountriesLineChart(data) {
         .attr("stroke-width", 1.5)
         .attr("d", d => line(d[1]));
 
-    // Add country labels on the right side of the graph
-    svg.selectAll(".country-label")
-        .data(countryData)
-        .enter().append("text")
-        .attr("class", "country-label")
-        .attr("transform", d => {
-            const lastDataPoint = d[1][d[1].length - 1];
-            return `translate(${x(new Date(lastDataPoint.Year, 0, 1))},${y(lastDataPoint.Total)})`;
-        })
-        .attr("x", 5)
-        .attr("dy", "0.35em")
-        .style("font-size", "12px")
-        .text(d => d[0])
-        .attr("fill", d => color(d[0]));
+    // Country labels spaced out
+    countryPaths.each(function(d) {
+        const pathLength = this.getTotalLength();
+        const lastPoint = this.getPointAtLength(pathLength - 1);
+        svg.append("text")
+            .attr("class", "country-label")
+            .attr("transform", `translate(${width - margin.right + 10},${lastPoint.y})`)
+            .attr("dy", "0.35em")
+            .attr("text-anchor", "start")
+            .style("font-size", "12px")
+            .style("fill", color(d[0]))
+            .text(d[0]);
+    });
 
-    // Add tooltip
+    // Tooltip setup
     const tooltip = d3.select("body").append("div")
         .attr("class", "tooltip")
         .style("opacity", 0)
@@ -213,39 +187,29 @@ function renderTopCountriesLineChart(data) {
         .style("padding", "5px")
         .style("pointer-events", "none");
 
-    // Overlay for capturing mouse events
-    svg.append("rect")
-        .attr("width", width - margin.left - margin.right)
-        .attr("height", height - margin.top - margin.bottom)
-        .attr("transform", `translate(${margin.left},${margin.top})`)
-        .style("fill", "none")
-        .style("pointer-events", "all")
-        .on("mousemove", function(event) {
-            const [xPos] = d3.pointer(event);
-            const year = x.invert(xPos).getFullYear();
+    svg.on("mousemove", function(event) {
+        const [xPos] = d3.pointer(event, this);
+        const year = x.invert(xPos).getFullYear();
 
-            const closestPoints = countryData.map(([country, values]) => {
-                const closest = values.reduce((prev, curr) => 
-                    Math.abs(curr.Year - year) < Math.abs(prev.Year - year) ? curr : prev
-                );
-                return { country, ...closest };
-            });
+        const closestPoints = countryData.map(([country, values]) => {
+            const closest = values.find(d => d.Year === year);
+            return { country, total: closest ? closest.Total : "No data", color: color(country) };
+        }).filter(d => d.total !== "No data").sort((a, b) => b.total - a.total); // Sorting and filtering
 
-            tooltip.transition()
-                .duration(200)
-                .style("opacity", .9);
+        tooltip.transition()
+            .duration(100)
+            .style("opacity", .9);
 
-            tooltip.html(closestPoints.map(d => 
-                `<strong>${d.country}</strong><br>Year: ${d.Year}<br>Total: ${isNaN(d.Total) ? "No data" : d.Total}`
-            ).join("<br><br>"))
-                .style("left", (event.pageX + 5) + "px")
-                .style("top", (event.pageY - 28) + "px");
-        })
-        .on("mouseout", () => {
-            tooltip.transition()
-                .duration(500)
-                .style("opacity", 0);
-        });
+        tooltip.html(closestPoints.map(d => 
+            `<span style='color:${d.color};'>&#9679;</span> ${d.country}: ${d.total}`
+        ).join("<br>"))
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 28) + "px");
+    }).on("mouseout", function() {
+        tooltip.transition()
+            .duration(200)
+            .style("opacity", 0);
+    });
 }
 
 // Scene 3: Pie Chart of CO2 Emissions by Sector for a Selected Year
