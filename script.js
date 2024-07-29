@@ -1,7 +1,7 @@
 let currentScene = 0;
 const scenes = ["scene-1", "scene-2", "scene-3"];
 const globalDataUrl = "https://raw.githubusercontent.com/datasets/co2-fossil-global/master/global.csv";
-const countryDataUrl = "/mnt/data/annual-co2-emissions-per-country.csv";
+const countryDataUrl = "annual-co2-emissions-per-country.csv";
 
 // Function to show a specific scene
 function showScene(index) {
